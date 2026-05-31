@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>多功能在线计算器 | 免费工具</title>
+  <meta name="description" content="基础计算、BMI、房贷、单位换算，纯前端无需后端，可挂Google Adsense">
+  <link rel="stylesheet" href="style.css">
+  <!-- 这里放你的Google Adsense验证代码 -->
+</head>
+<body>
+  <div class="container">
+    <h1>多功能在线计算器</h1>
+    <p>免费 · 无需下载 · 纯前端</p>
+
+    <!-- 广告位1：顶部 -->
+    <div class="ad-slot">【AdSense 广告位1】</div>
+
+    <div class="tool-group">
+      <div class="tool-card">
+        <h2>基础计算器</h2>
+        <input type="text" id="calcDisplay" readonly placeholder="0">
+        <div class="calc-buttons">
+          <button onclick="append('7')">7</button>
+          <button onclick="append('8')">8</button>
+          <button onclick="append('9')">9</button>
+          <button onclick="append('/')">÷</button>
+          <button onclick="append('4')">4</button>
+          <button onclick="append('5')">5</button>
+          <button onclick="append('6')">6</button>
+          <button onclick="append('*')">×</button>
+          <button onclick="append('1')">1</button>
+          <button onclick="append('2')">2</button>
+          <button onclick="append('3')">3</button>
+          <button onclick="append('-')">-</button>
+          <button onclick="append('0')">0</button>
+          <button onclick="append('.')">.</button>
+          <button onclick="calculate()">=</button>
+          <button onclick="append('+')">+</button>
+          <button onclick="clearDisplay()" class="clear">C</button>
+        </div>
+      </div>
+
+      <div class="tool-card">
+        <h2>BMI计算器</h2>
+        <input type="number" id="bmiHeight" placeholder="身高(cm)">
+        <input type="number" id="bmiWeight" placeholder="体重(kg)">
+        <button onclick="calcBMI()">计算BMI</button>
+        <p id="bmiResult"></p>
+      </div>
+
+      <div class="tool-card">
+        <h2>房贷计算器</h2>
+        <input type="number" id="loanAmount" placeholder="贷款金额(元)">
+        <input type="number" id="loanRate" placeholder="年利率(%)">
+        <input type="number" id="loanYears" placeholder="贷款年限(年)">
+        <button onclick="calcLoan()">计算月供</button>
+        <p id="loanResult"></p>
+      </div>
+
+      <div class="tool-card">
+        <h2>单位换算</h2>
+        <input type="number" id="unitValue" placeholder="输入数值">
+        <select id="unitFrom">
+          <option value="cm">厘米(cm)</option>
+          <option value="m">米(m)</option>
+          <option value="km">千米(km)</option>
+          <option value="in">英寸(in)</option>
+          <option value="ft">英尺(ft)</option>
+        </select>
+        <span>→</span>
+        <select id="unitTo">
+          <option value="cm">厘米(cm)</option>
+          <option value="m">米(m)</option>
+          <option value="km">千米(km)</option>
+          <option value="in">英寸(in)</option>
+          <option value="ft">英尺(ft)</option>
+        </select>
+        <button onclick="convertUnit()">换算</button>
+        <p id="unitResult"></p>
+      </div>
+    </div>
+
+    <!-- 广告位2：中间 -->
+    <div class="ad-slot">【AdSense 广告位2】</div>
+
+    <div class="tool-group">
+      <div class="tool-card">
+        <h2>温度换算</h2>
+        <input type="number" id="tempValue" placeholder="输入温度">
+        <select id="tempFrom">
+          <option value="c">摄氏度(°C)</option>
+          <option value="f">华氏度(°F)</option>
+          <option value="k">开尔文(K)</option>
+        </select>
+        <span>→</span>
+        <select id="tempTo">
+          <option value="c">摄氏度(°C)</option>
+          <option value="f">华氏度(°F)</option>
+          <option value="k">开尔文(K)</option>
+        </select>
+        <button onclick="convertTemp()">换算</button>
+        <p id="tempResult"></p>
+      </div>
+
+      <div class="tool-card">
+        <h2>年龄计算器</h2>
+        <input type="date" id="birthDate">
+        <button onclick="calcAge()">计算年龄</button>
+        <p id="ageResult"></p>
+      </div>
+    </div>
+
+    <!-- 广告位3：底部 -->
+    <div class="ad-slot">【AdSense 广告位3】</div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
