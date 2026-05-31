@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A股 融资融券 当日信息</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .controls { display:flex; gap:10px; align-items:center; margin-bottom:16px; }
+    .link-button { display:inline-block; padding:8px 14px; background:#1a73e8; color:#fff; border-radius:6px; text-decoration:none }
+    table.margin-table { width:100%; border-collapse:collapse; margin-top:10px }
+    table.margin-table th, table.margin-table td { border:1px solid #eee; padding:8px; text-align:center }
+    table.margin-table th { background:#f6f9ff; color:#333 }
+    .note { color:#666; font-size:14px; margin-top:10px }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>A股 融资融券 当日信息</h1>
+    <p class="note">选择交易日期，获取当日融资融券数据（如未配置后端或 API，页面会显示模拟示例）。</p>
+
+    <div class="tool-card">
+      <div class="controls">
+        <label for="tradeDate">交易日期：</label>
+        <input type="date" id="tradeDate">
+        <select id="pageSize">
+          <option value="50">前50条</option>
+          <option value="100">前100条</option>
+          <option value="200">前200条</option>
+        </select>
+        <button id="fetchBtn">获取数据</button>
+        <a href="index.html" class="link-button">返回工具首页</a>
+      </div>
+
+      <div id="status" class="note"></div>
+
+      <div id="resultArea">
+        <table class="margin-table" id="resultTable">
+          <thead>
+            <tr>
+              <th>代码</th>
+              <th>名称</th>
+              <th>融资余额</th>
+              <th>融券余额</th>
+              <th>融资买入额</th>
+              <th>融券卖出量</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <p class="note">提示：你可以在页面脚本中修改 <strong>API_ENDPOINT</strong> 变量以接入真实数据源（需返回 JSON 数组）。当 fetch 失败时会自动显示演示数据。</p>
+    </div>
+  </div>
+
+<script>
+// 可配置的 API 接口（期望根据日期返回 JSON 数组）
+// 默认指向本地 Flask 服务：API_ENDPOINT + '?date=2024-05-30&pageSize=100'
+const API_ENDPOINT = 'http://localhost:5000/api/margin';
+
+function isoDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+// 初始化默认日期为最近一个交易日（简单用昨天）
+const dateInput = document.getElementById('tradeDate');
+let today = new Date();
+// 默认用前一天，若周末可自行调整
+today.setDate(today.getDate() - 1);
+dateInput.value = isoDate(today);
+
+const status = document.getElementById('status');
+const fetchBtn = document.getElementById('fetchBtn');
+const resultBody = document.querySelector('#resultTable tbody');
+
+fetchBtn.addEventListener('click', () => {
+  const date = dateInput.value;
+  const pageSize = document.getElementById('pageSize').value || 100;
+  if (!date) { status.textContent = '请选择日期'; return; }
+  getData(date, pageSize);
+});
+
+async function getData(date, pageSize) {
+  status.textContent = `正在请求 ${date} 的数据...`;
+  resultBody.innerHTML = '';
+  // 如果未配置 API，则直接使用模拟数据
+  if (!API_ENDPOINT) {
+    status.textContent = '使用内置模拟数据（未配置 API_ENDPOINT）';
+    render(mockData(date, pageSize));
+    return;
+  }
+
+  const url = `${API_ENDPOINT}?date=${encodeURIComponent(date)}&pageSize=${encodeURIComponent(pageSize)}`;
+  try {
+    const res = await fetch(url, {cache:'no-store'});
+    if (!res.ok) throw new Error('网络错误 ' + res.status);
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      status.textContent = '返回数据为空，显示演示数据。';
+      render(mockData(date, pageSize));
+      return;
+    }
+    status.textContent = `获取到 ${data.length} 条记录`;
+    render(data);
+  } catch (e) {
+    console.error(e);
+    status.textContent = '请求失败，已回退到演示数据（在控制台查看错误）';
+    render(mockData(date, pageSize));
+  }
+}
+
+function render(rows) {
+  resultBody.innerHTML = '';
+  for (const r of rows) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.code || ''}</td>
+      <td>${r.name || ''}</td>
+      <td>${formatNumber(r.financing_balance)}</td>
+      <td>${formatNumber(r.securities_lending_balance)}</td>
+      <td>${formatNumber(r.financing_buy_amount)}</td>
+      <td>${formatNumber(r.securities_lending_sell_volume)}</td>
+    `;
+    resultBody.appendChild(tr);
+  }
+}
+
+function formatNumber(v){
+  if (v === null || v === undefined || v === '') return '-';
+  if (typeof v === 'number') return v.toLocaleString();
+  return String(v);
+}
+
+function mockData(date, pageSize){
+  const sample = [];
+  const n = Math.min(20, parseInt(pageSize || 50, 10));
+  for (let i=0;i<n;i++){
+    const idx = (i+1).toString().padStart(4,'0');
+    sample.push({
+      code: '6' + idx,
+      name: `示例股${idx}`,
+      financing_balance: (Math.random()*5e8).toFixed(0),
+      securities_lending_balance: (Math.random()*2e8).toFixed(0),
+      financing_buy_amount: (Math.random()*1e8).toFixed(0),
+      securities_lending_sell_volume: Math.floor(Math.random()*1e6)
+    });
+  }
+  return sample;
+}
+</script>
+</body>
+</html>

@@ -110,3 +110,7 @@ p[id$="Result"] {
   color: #1a73e8;
   text-align: center;
 }
+
+/* 融资融券页面表格样式补充 */
+.margin-table { font-size:14px }
+.note { color:#666 }

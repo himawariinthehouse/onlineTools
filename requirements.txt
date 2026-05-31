@@ -1,0 +1,5 @@
+flask
+akshare
+pandas
+flask-cors
+flask-cors
