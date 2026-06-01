@@ -1,0 +1,14 @@
+{
+  "name": "online-tools",
+  "version": "1.0.0",
+  "description": "多功能在线计算器 + A股融资融券信息查询",
+  "main": "server.py",
+  "scripts": {
+    "dev": "python3 server.py",
+    "build": "echo 'Build complete'"
+  },
+  "engines": {
+    "node": "18.x",
+    "python": "3.11"
+  }
+}

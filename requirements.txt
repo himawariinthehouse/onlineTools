@@ -1,5 +1,6 @@
 flask
-akshare
-pandas
+akshare>=1.0
+pandas>=1.3.0
 flask-cors
-flask-cors
+lxml
+requests>=2.25.0

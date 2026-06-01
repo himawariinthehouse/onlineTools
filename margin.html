@@ -56,8 +56,10 @@
 
 <script>
 // 可配置的 API 接口（期望根据日期返回 JSON 数组）
-// 默认指向本地 Flask 服务：API_ENDPOINT + '?date=2024-05-30&pageSize=100'
-const API_ENDPOINT = 'http://localhost:5000/api/margin';
+// 自动检测环境：本地开发用 localhost:5000，部署到 Vercel 用相对路径
+const API_ENDPOINT = window.location.hostname === 'localhost' 
+  ? 'http://localhost:5000/api/margin'
+  : '/api/margin';
 
 function isoDate(d) {
   const y = d.getFullYear();
