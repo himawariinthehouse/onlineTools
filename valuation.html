@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>股权估值工具 | 多功能在线计算器</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .field-grid .field {
+      display: flex;
+      flex-direction: column;
+    }
+    .field-grid label {
+      margin-bottom: 6px;
+      color: #444;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .result-card {
+      background: #f8fbff;
+      border: 1px solid #dbe8ff;
+      padding: 18px;
+      margin-top: 20px;
+      border-radius: 12px;
+    }
+    .result-card p {
+      margin: 10px 0;
+    }
+    .result-card .result-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .help-text {
+      color: #666;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    table.valuation-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+    }
+    table.valuation-table th,
+    table.valuation-table td {
+      border: 1px solid #e8eff9;
+      padding: 10px;
+      text-align: center;
+    }
+    table.valuation-table th {
+      background: #eef6ff;
+      color: #333;
+    }
+    .warning {
+      color: #b02a37;
+      font-weight: 500;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>股票估值工具</h1>
+    <p>使用DCF估值方法，输入生命周期、资本参数与FCFF预测，计算内在价值与溢价率。</p>
+    <p style="text-align:center;margin-bottom:20px;">
+      <a href="index.html" class="link-button">返回工具首页</a>
+      <a href="margin.html" class="link-button" style="margin-left:12px;">查看融资融券</a>
+    </p>
+
+    <div class="tool-card">
+      <div class="field-grid">
+        <div class="field">
+          <label for="lifecycle">生命周期</label>
+          <select id="lifecycle">
+            <option value="高成长期">高成长期</option>
+            <option value="稳健成长期">稳健成长期</option>
+            <option value="成熟期">成熟期</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="rf">无风险利率 RF（中债10年期收益率）</label>
+          <input id="rf" type="number" step="0.0001" placeholder="如 0.03 即 3%">
+        </div>
+        <div class="field">
+          <label for="erpNeutral">中性ERP</label>
+          <input id="erpNeutral" type="number" step="0.0001" placeholder="默认 0.06">
+        </div>
+        <div class="field">
+          <label for="industryKd">行业平均Kd</label>
+          <input id="industryKd" type="number" step="0.0001" placeholder="如 0.045">
+        </div>
+        <div class="field">
+          <label for="betaBase">Beta 基础值</label>
+          <input id="betaBase" type="number" step="0.01" placeholder="如 1.1">
+        </div>
+        <div class="field">
+          <label for="ebitTaxRate">EBIT 税率</label>
+          <input id="ebitTaxRate" type="number" step="0.0001" placeholder="如 0.25 即 25%">
+        </div>
+        <div class="field">
+          <label for="marketCap">当前市值（元）</label>
+          <input id="marketCap" type="number" step="1" placeholder="如 1000000000">
+        </div>
+        <div class="field">
+          <label for="debt">有息负债（元）</label>
+          <input id="debt" type="number" step="1" placeholder="如 200000000">
+        </div>
+        <div class="field">
+          <label for="cash">现金及等价物（元）</label>
+          <input id="cash" type="number" step="1" placeholder="如 150000000">
+        </div>
+        <div class="field">
+          <label for="shares">最新总股本（股）</label>
+          <input id="shares" type="number" step="1" placeholder="如 100000000">
+        </div>
+        <div class="field">
+          <label for="currentPrice">当前股价（元）</label>
+          <input id="currentPrice" type="number" step="0.0001" placeholder="如 10.5">
+        </div>
+        <div class="field">
+          <label for="scenario">情景</label>
+          <select id="scenario">
+            <option value="乐观">乐观</option>
+            <option value="中性">中性</option>
+            <option value="保守">保守</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field" style="grid-column:1/-1;">
+        <label for="fcffValues">前5年 FCFF 预测（元），逗号或换行分隔</label>
+        <textarea id="fcffValues" rows="4" placeholder="如 120000000, 140000000, 165000000, 190000000, 215000000"></textarea>
+      </div>
+      <button onclick="runValuation()">计算估值</button>
+      <div id="valuationMessage" class="warning"></div>
+
+      <div id="valuationResult" class="result-card" style="display:none;">
+        <div class="result-title">估值结果</div>
+        <p id="resultWacc"></p>
+        <p id="resultG"></p>
+        <p id="resultEv"></p>
+        <p id="resultEquity"></p>
+        <p id="resultPerShare"></p>
+        <p id="resultPremium"></p>
+        <div id="fcffTableWrapper"></div>
+      </div>
+
+      <p class="help-text">提示：如果生命周期选择“成熟期”，仅支持“中性”情景；若输入前5年 FCFF，系统将按流程自动生成后5年预测（高成长期 / 稳健成长期）。</p>
+    </div>
+  </div>
+
+<script>
+  class StandardDCFValuator {
+    constructor({ lifecycle, rf, erpNeutral, industryKdAvg, betaBase, ebitTaxRateAvg, eMarketCap, dInterestBearing, cashAndFinance, latestShares, currentPrice }) {
+      this.lifecycle = lifecycle;
+      this.forecastYears = ['高成长期','稳健成长期'].includes(lifecycle) ? 10 : 5;
+      this.erp = { 乐观: 0.055, 中性: erpNeutral, 保守: 0.065 };
+      if (['高成长期','稳健成长期'].includes(lifecycle)) {
+        this.g = { 乐观: 0.035, 中性: 0.03, 保守: 0.025 };
+      } else {
+        this.g = { 中性: 0.0175 };
+      }
+      this.rf = rf;
+      this.industryKdAvg = industryKdAvg;
+      this.betaBase = betaBase;
+      this.t = ebitTaxRateAvg;
+      this.e = eMarketCap;
+      this.d = dInterestBearing;
+      this.cash = cashAndFinance;
+      this.shares = latestShares;
+      this.currentPrice = currentPrice;
+      this.netDebt = (dInterestBearing != null && cashAndFinance != null) ? (dInterestBearing - cashAndFinance) : null;
+    }
+
+    calcWacc(scenario) {
+      const beta = scenario === '乐观' ? this.betaBase * 0.9 : scenario === '保守' ? this.betaBase * 1.1 : this.betaBase;
+      const ke = this.rf + beta * this.erp[scenario];
+      const kd = scenario === '乐观' ? this.industryKdAvg - 0.003 : scenario === '保守' ? this.industryKdAvg + 0.003 : this.industryKdAvg;
+      const kdAfterTax = kd * (1 - this.t);
+      const v = this.e + this.d;
+      const eWeight = this.e / v;
+      const dWeight = this.d / v;
+      return eWeight * ke + dWeight * kdAfterTax;
+    }
+
+    projectFcff(fcffList) {
+      if (!Array.isArray(fcffList) || fcffList.length !== 5) {
+        throw new Error('请输入前5年 FCFF 预测值');
+      }
+      if (this.forecastYears === 10) {
+        const projected = [...fcffList];
+        let prev = fcffList[fcffList.length - 1];
+        const declineRates = [0.08, 0.06, 0.05, 0.045, 0.04];
+        for (let i = 0; i < 5; i++) {
+          prev = prev * (1 + declineRates[i]);
+          projected.push(prev);
+        }
+        return projected;
+      }
+      return fcffList;
+    }
+
+    calcIntrinsicValue(fcffList, scenario) {
+      const wacc = this.calcWacc(scenario);
+      const g = this.g[scenario] || this.g['中性'];
+      if (wacc <= g) {
+        throw new Error(`WACC(${(wacc*100).toFixed(2)}%)必须大于永续g(${(g*100).toFixed(2)}%)`);
+      }
+      let pvFcff = 0;
+      fcffList.forEach((fcff, index) => {
+        pvFcff += fcff / Math.pow(1 + wacc, index + 1);
+      });
+      const fcffLast = fcffList[fcffList.length - 1];
+      const tv = fcffLast * (1 + g) / (wacc - g);
+      const pvTv = tv / Math.pow(1 + wacc, fcffList.length);
+      const ev = pvFcff + pvTv;
+      const equityValue = ev - this.netDebt;
+      const intrinsicPerShare = equityValue / this.shares;
+      const premiumRate = ((intrinsicPerShare - this.currentPrice) / this.currentPrice) * 100;
+      return { wacc, g, ev, equityValue, intrinsicPerShare, premiumRate };
+    }
+  }
+
+  const lifecycleEl = document.getElementById('lifecycle');
+  const scenarioEl = document.getElementById('scenario');
+  const messageEl = document.getElementById('valuationMessage');
+  const resultPanel = document.getElementById('valuationResult');
+
+  lifecycleEl.addEventListener('change', () => {
+    const isGrowth = ['高成长期','稳健成长期'].includes(lifecycleEl.value);
+    scenarioEl.innerHTML = '';
+    if (isGrowth) {
+      ['乐观','中性','保守'].forEach(text => scenarioEl.insertAdjacentHTML('beforeend', `<option value="${text}">${text}</option>`));
+    } else {
+      scenarioEl.insertAdjacentHTML('beforeend', `<option value="中性">中性</option>`);
+    }
+  });
+
+  lifecycleEl.dispatchEvent(new Event('change'));
+
+  function parseNumber(value, name) {
+    if (value === '' || value === null || value === undefined) {
+      throw new Error(`${name} 不能为空`);
+    }
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) {
+      throw new Error(`${name} 必须是数字`);
+    }
+    return parsed;
+  }
+
+  function parseFcffInput(text) {
+    const values = text.split(/[,\n;]/).map(s => s.trim()).filter(Boolean).map(Number);
+    if (values.length !== 5 || values.some(v => Number.isNaN(v))) {
+      throw new Error('请输入 5 个有效的 FCFF 数值，逗号或换行分隔');
+    }
+    return values;
+  }
+
+  function formatMoney(value) {
+    if (typeof value !== 'number' || Number.isNaN(value)) return '-';
+    return value.toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+  }
+
+  function runValuation() {
+    messageEl.textContent = '';
+    resultPanel.style.display = 'none';
+    try {
+      const lifecycle = lifecycleEl.value;
+      const rf = parseNumber(document.getElementById('rf').value, '无风险利率');
+      const erpNeutral = parseNumber(document.getElementById('erpNeutral').value || '0.06', '中性ERP');
+      const industryKdAvg = parseNumber(document.getElementById('industryKd').value, '行业平均Kd');
+      const betaBase = parseNumber(document.getElementById('betaBase').value, 'Beta');
+      const ebitTaxRate = parseNumber(document.getElementById('ebitTaxRate').value, 'EBIT税率');
+      const marketCap = parseNumber(document.getElementById('marketCap').value, '市值');
+      const debt = parseNumber(document.getElementById('debt').value, '有息负债');
+      const cash = parseNumber(document.getElementById('cash').value, '现金及等价物');
+      const shares = parseNumber(document.getElementById('shares').value, '总股本');
+      const currentPrice = parseNumber(document.getElementById('currentPrice').value, '当前股价');
+      const scenario = scenarioEl.value;
+      const fcffInput = document.getElementById('fcffValues').value;
+      const fcffList = parseFcffInput(fcffInput);
+
+      const valuator = new StandardDCFValuator({
+        lifecycle,
+        rf,
+        erpNeutral,
+        industryKdAvg,
+        betaBase,
+        ebitTaxRateAvg: ebitTaxRate,
+        eMarketCap: marketCap,
+        dInterestBearing: debt,
+        cashAndFinance: cash,
+        latestShares: shares,
+        currentPrice
+      });
+
+      const projected = valuator.projectFcff(fcffList);
+      const result = valuator.calcIntrinsicValue(projected, scenario);
+
+      document.getElementById('resultWacc').textContent = `WACC: ${(result.wacc * 100).toFixed(2)}%`;
+      document.getElementById('resultG').textContent = `永续增长率 g: ${(result.g * 100).toFixed(2)}%`;
+      document.getElementById('resultEv').textContent = `企业价值 EV: ${formatMoney(result.ev)} 元`;
+      document.getElementById('resultEquity').textContent = `股权价值: ${formatMoney(result.equityValue)} 元`;
+      document.getElementById('resultPerShare').textContent = `每股内在价值: ${formatMoney(result.intrinsicPerShare)} 元`;
+      document.getElementById('resultPremium').textContent = `相对当前价格溢价率: ${result.premiumRate.toFixed(2)}%`;
+
+      const wrapper = document.getElementById('fcffTableWrapper');
+      wrapper.innerHTML = `<div class="result-title">预测 FCFF 明细</div>`;
+      const table = document.createElement('table');
+      table.className = 'valuation-table';
+      table.innerHTML = '<thead><tr><th>年度</th><th>FCFF（元）</th></tr></thead>';
+      const tbody = document.createElement('tbody');
+      projected.forEach((value, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>第 ${index + 1} 年</td><td>${formatMoney(value)}</td>`;
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      wrapper.appendChild(table);
+
+      resultPanel.style.display = 'block';
+    } catch (error) {
+      messageEl.textContent = error.message || '计算失败，请检查输入。';
+    }
+  }
+</script>
+</body>
+</html>
