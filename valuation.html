@@ -133,6 +133,11 @@
       </div>
 
       <div class="field" style="grid-column:1/-1;">
+        <label for="jsonInput">JSON 格式参数输入</label>
+        <textarea id="jsonInput" rows="6" placeholder='如 {"lifecycle":"稳健成长期","rf":0.0172,"erp_neutral":0.06,"kd_industry":0.032,"beta_base":1.15,"ebit_tax_rate":0.185,"market_cap":1864531000000.0,"interest_bearing_debt":125450000000.0,"cash_and_equivalents":392500000000.0,"total_shares":4626580000,"current_price":403.00,"scenario":"中性","fcff_list":[87100000000,98000000000,109000000000,118000000000,125000000000]}'></textarea>
+        <button onclick="loadFromJson()" style="margin-top:8px;">解析并填充表单</button>
+      </div>
+      <div class="field" style="grid-column:1/-1;">
         <label for="fcffValues">前5年 FCFF 预测（元），逗号或换行分隔</label>
         <textarea id="fcffValues" rows="4" placeholder="如 120000000, 140000000, 165000000, 190000000, 215000000"></textarea>
       </div>
@@ -267,7 +272,57 @@
     return value.toLocaleString('zh-CN', { maximumFractionDigits: 2 });
   }
 
+  function applyJsonToForm(config) {
+    const mapping = {
+      lifecycle: 'lifecycle',
+      rf: 'rf',
+      erp_neutral: 'erpNeutral',
+      kd_industry: 'industryKd',
+      beta_base: 'betaBase',
+      ebit_tax_rate: 'ebitTaxRate',
+      market_cap: 'marketCap',
+      interest_bearing_debt: 'debt',
+      cash_and_equivalents: 'cash',
+      total_shares: 'shares',
+      current_price: 'currentPrice',
+      scenario: 'scenario'
+    };
+    Object.entries(mapping).forEach(([jsonKey, fieldId]) => {
+      if (config[jsonKey] !== undefined && config[jsonKey] !== null) {
+        const el = document.getElementById(fieldId);
+        if (el) {
+          el.value = config[jsonKey];
+        }
+      }
+    });
+    if (config.lifecycle) {
+      lifecycleEl.dispatchEvent(new Event('change'));
+    }
+    if (Array.isArray(config.fcff_list)) {
+      document.getElementById('fcffValues').value = config.fcff_list.join(', ');
+    }
+  }
+
+  function loadFromJson() {
+    messageEl.style.color = '#b02a37';
+    messageEl.textContent = '';
+    try {
+      const raw = document.getElementById('jsonInput').value.trim();
+      if (!raw) {
+        throw new Error('请输入 JSON 字符串');
+      }
+      const config = JSON.parse(raw);
+      applyJsonToForm(config);
+      messageEl.style.color = '#0f5132';
+      messageEl.textContent = 'JSON 已解析并成功填充表单';
+    } catch (error) {
+      messageEl.style.color = '#b02a37';
+      messageEl.textContent = `解析JSON失败：${error.message}`;
+    }
+  }
+
   function runValuation() {
+    messageEl.style.color = '#b02a37';
     messageEl.textContent = '';
     resultPanel.style.display = 'none';
     try {
