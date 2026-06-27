@@ -70,6 +70,7 @@
     <p style="text-align:center;margin-bottom:20px;">
       <a href="index.html" class="link-button">返回工具首页</a>
       <a href="margin.html" class="link-button" style="margin-left:12px;">查看融资融券</a>
+      <a href="valuation_history.html" class="link-button" style="margin-left:12px;">估值历史</a>
     </p>
 
     <div class="tool-card">
@@ -279,6 +280,8 @@
 
   function applyJsonToForm(config) {
     const mapping = {
+      stock_name: 'stockName',
+      stockName: 'stockName',
       lifecycle: 'lifecycle',
       rf: 'rf',
       erp_neutral: 'erpNeutral',
