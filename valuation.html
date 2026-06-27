@@ -75,6 +75,10 @@
     <div class="tool-card">
       <div class="field-grid">
         <div class="field">
+          <label for="stockName">股票名称</label>
+          <input id="stockName" type="text" placeholder="如 腾讯控股">
+        </div>
+        <div class="field">
           <label for="lifecycle">生命周期</label>
           <select id="lifecycle">
             <option value="高成长期">高成长期</option>
@@ -232,6 +236,7 @@
   }
 
   const lifecycleEl = document.getElementById('lifecycle');
+  const stockNameEl = document.getElementById('stockName');
   const scenarioEl = document.getElementById('scenario');
   const messageEl = document.getElementById('valuationMessage');
   const resultPanel = document.getElementById('valuationResult');
@@ -380,6 +385,33 @@
       wrapper.appendChild(table);
 
       resultPanel.style.display = 'block';
+
+      // 保存查询结果到 localStorage：键为 股票名称 + 查询日期（yyyy-mm-dd），存在则覆盖
+      try {
+        const stockName = (stockNameEl && stockNameEl.value.trim()) ? stockNameEl.value.trim() : 'unknown';
+        const queryDate = new Date().toISOString().slice(0,10);
+        const key = stockName + queryDate;
+        const record = {
+          stockName,
+          queryDate,
+          inputs: { lifecycle, rf, erpNeutral, industryKdAvg, betaBase, ebitTaxRate, marketCap, debt, cash, shares, currentPrice, scenario },
+          fcffProjected: projected,
+          result: {
+            wacc: result.wacc,
+            g: result.g,
+            ev: result.ev,
+            equityValue: result.equityValue,
+            intrinsicPerShare: result.intrinsicPerShare,
+            premiumRate: result.premiumRate
+          },
+          savedAt: new Date().toISOString()
+        };
+        localStorage.setItem(key, JSON.stringify(record));
+        messageEl.style.color = '#0f5132';
+        messageEl.textContent = '估值结果已保存到 localStorage';
+      } catch (e) {
+        console.error('保存到 localStorage 失败', e);
+      }
     } catch (error) {
       messageEl.textContent = error.message || '计算失败，请检查输入。';
     }

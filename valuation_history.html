@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>估值历史记录</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .controls { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:16px; }
+    .controls label { font-weight:500; color:#444; }
+    .history-table { width:100%; border-collapse:collapse; }
+    .history-table th, .history-table td { border:1px solid #e8eff9; padding:8px; text-align:left; }
+    .history-table th { background:#f1f7ff; }
+    .small { font-size:0.9em; color:#666; }
+    .empty { color:#666; padding:20px; text-align:center; }
+    .link-button { display:inline-block; padding:6px 10px; border-radius:6px; background:#eef6ff; color:#0366d6; text-decoration:none; }
+    .json-pre { white-space:pre-wrap; font-family:monospace; background:#fafafa; padding:8px; border-radius:6px; border:1px solid #eee; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>估值历史记录</h1>
+    <p style="margin-bottom:12px;"><a href="valuation.html" class="link-button">返回估值页面</a></p>
+
+    <div class="controls">
+      <div>
+        <label for="filterDate">按日期筛选</label><br>
+        <select id="filterDate"><option value="all">全部</option></select>
+      </div>
+      <div>
+        <label for="filterStock">按股票筛选</label><br>
+        <select id="filterStock"><option value="all">全部</option></select>
+      </div>
+      <div style="align-self:flex-end;">
+        <button id="btnSearch">查询</button>
+      </div>
+      <div style="margin-left:auto; align-self:center;" class="small">提示：记录来自 localStorage，键格式为 股票名称+查询日期</div>
+    </div>
+
+    <div id="results"></div>
+  </div>
+
+<script>
+  function loadAllRecords() {
+    const records = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      try {
+        const raw = localStorage.getItem(key);
+        const obj = JSON.parse(raw);
+        if (obj && obj.stockName && obj.queryDate) {
+          records.push(obj);
+        }
+      } catch (e) {
+        // skip non-JSON or invalid entries
+      }
+    }
+    return records.sort((a,b) => (a.queryDate < b.queryDate ? 1 : -1));
+  }
+
+  function populateFilters(records) {
+    const dateEl = document.getElementById('filterDate');
+    const stockEl = document.getElementById('filterStock');
+    const dates = Array.from(new Set(records.map(r => r.queryDate))).sort((a,b)=>b.localeCompare(a));
+    const stocks = Array.from(new Set(records.map(r => r.stockName))).sort((a,b)=>a.localeCompare(b, 'zh-CN'));
+    // 清空保留 "全部"
+    dateEl.innerHTML = '<option value="all">全部</option>';
+    stockEl.innerHTML = '<option value="all">全部</option>';
+    dates.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d; dateEl.appendChild(opt);
+    });
+    stocks.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s; opt.textContent = s; stockEl.appendChild(opt);
+    });
+  }
+
+  function renderRecords(records) {
+    const wrapper = document.getElementById('results');
+    wrapper.innerHTML = '';
+    if (!records || records.length === 0) {
+      wrapper.innerHTML = '<div class="empty">没有找到符合条件的记录。</div>';
+      return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'history-table';
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr><th>股票</th><th>查询日期</th><th>保存时间</th><th>每股内在价值</th><th>当前价</th><th>溢价率(%)</th><th>详情</th></tr>';
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+
+    records.forEach((r, idx) => {
+      const tr = document.createElement('tr');
+      const perShare = r.result && typeof r.result.intrinsicPerShare === 'number' ? r.result.intrinsicPerShare.toLocaleString('zh-CN', {maximumFractionDigits:2}) : '-';
+      const curPrice = r.inputs && typeof r.inputs.currentPrice === 'number' ? r.inputs.currentPrice.toLocaleString('zh-CN', {maximumFractionDigits:4}) : (r.inputs && r.inputs.currentPrice ? r.inputs.currentPrice : '-');
+      const premium = r.result && typeof r.result.premiumRate === 'number' ? r.result.premiumRate.toFixed(2) : '-';
+      tr.innerHTML = `<td>${r.stockName}</td><td>${r.queryDate}</td><td>${(r.savedAt||'-')}</td><td>${perShare}</td><td>${curPrice}</td><td>${premium}</td><td><button data-idx="${idx}" class="btnDetail">查看</button></td>`;
+      tbody.appendChild(tr);
+
+      const detailTr = document.createElement('tr');
+      detailTr.style.display = 'none';
+      detailTr.className = 'detail-row';
+      const detailTd = document.createElement('td');
+      detailTd.colSpan = 7;
+      detailTd.innerHTML = `<div class="json-pre">${escapeHtml(JSON.stringify(r, null, 2))}</div>`;
+      detailTr.appendChild(detailTd);
+      tbody.appendChild(detailTr);
+    });
+
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+
+    // 绑定查看详情事件
+    wrapper.querySelectorAll('.btnDetail').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = Number(e.currentTarget.getAttribute('data-idx'));
+        const detailRows = wrapper.querySelectorAll('.detail-row');
+        // toggle corresponding detail row (it is next sibling in tbody ordering)
+        const target = detailRows[idx];
+        if (!target) return;
+        target.style.display = (target.style.display === 'none') ? '' : 'none';
+      });
+    });
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function filterAndRender() {
+    const all = loadAllRecords();
+    const dateVal = document.getElementById('filterDate').value;
+    const stockVal = document.getElementById('filterStock').value;
+    let filtered = all;
+    if (dateVal && dateVal !== 'all') filtered = filtered.filter(r => r.queryDate === dateVal);
+    if (stockVal && stockVal !== 'all') filtered = filtered.filter(r => r.stockName === stockVal);
+    renderRecords(filtered);
+  }
+
+  document.getElementById('btnSearch').addEventListener('click', () => {
+    filterAndRender();
+  });
+
+  // 初始加载
+  (function init(){
+    const all = loadAllRecords();
+    populateFilters(all);
+    renderRecords(all);
+  })();
+</script>
+</body>
+</html>
